@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Semester Feedback Form</title>
+<style>
+  :root { font-family: "Public Sans", -apple-system, sans-serif; font-style: normal; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  .wraper-container { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: flex-end; justify-content: center; }
+  .wrapper-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); }
+  .content-container { position: relative; width: 100%; max-width: 480px; background: #fff; border-radius: 16px 16px 0 0; padding: 14px 18px 28px; animation: slideUp .35s ease; }
+  .close-anim { animation: slideDown .8s ease forwards; }
+  @keyframes slideUp { from { transform: translateY(100%);} to { transform: translateY(0);} }
+  @keyframes slideDown { from { transform: translateY(0);} to { transform: translateY(110%);} }
+
+  .close-button { display: flex; justify-content: flex-end; }
+  .close-button button { border: none; background: none; font-size: 20px; line-height: 1; cursor: pointer; color: #555; margin-bottom: 10px; }
+
+  .heading-contaner { text-align: center; color: rgba(12,12,12,.7); padding-bottom: 10px; border-bottom: .5px solid rgba(12,12,12,.1); font-weight: 600; }
+
+  .navbar { margin: 12px 0 4px; }
+  .btn-group { display: flex; justify-content: space-between; gap: 6px; }
+  .btn-group__item { height: 3px; flex: 1; background: #e3e3e3; border-radius: 2px; }
+  .btn-group__item.activeTab { background: #f5b942; }
+
+  .rating-container { padding: 18px 4px 4px; min-height: 240px; }
+  .rating-container > p { font-size: 16px; font-weight: 600; color: #1c1c1c; margin-bottom: 16px; }
+
+  .start-rating-container { display: flex; gap: 14px; margin-bottom: 18px; }
+  .star { font-size: 34px; cursor: pointer; color: #d9d9d9; transition: transform .1s; user-select: none; }
+  .star:active { transform: scale(1.15); }
+  .not-rated { color: #9a9a9a; font-size: 13px; }
+
+  .choose-label { font-size: 13px; color: #6f6f6f; margin-bottom: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+  .chip { border: 1px solid #cfcfcf; border-radius: 18px; padding: 7px 14px; font-size: 13px; color: #444; cursor: pointer; background: #fff; }
+  .chip.selected { background: #fff4dd; border-color: #f5b942; color: #8a5a00; font-weight: 600; }
+
+  .submit-button { width: 100%; padding: 13px; border: none; border-radius: 10px; background: #f5b942; color: #1c1c1c; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .submit-button:disabled { background: #e9e9e9; color: #aaa; cursor: not-allowed; }
+
+  .start-container, .success-container { text-align: center; padding: 28px 10px 10px; }
+  .start-container h1 { font-size: 26px; margin-bottom: 8px; }
+  .start-container p { color: #555; margin-bottom: 4px; }
+  .start-button { margin-top: 22px; width: 100%; padding: 13px; border: none; border-radius: 10px; background: #f5b942; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .form-submitted { margin: 14px 0 6px; }
+  .success-container p { color: #555; }
+  .success-icon { font-size: 48px; }
+</style>
+</head>
+<body>
+
+<div class="wraper-container" id="widget">
+  <div class="wrapper-overlay" id="overlay"></div>
+  <div class="content-container" id="card">
+    <div class="close-button"><button id="closeBtn" aria-label="Close">&#10005;</button></div>
+    <div class="heading-contaner"><span>Semester Feedback Form</span></div>
+    <div id="screen"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ============================================================
+     CONFIG — fill these two values before launching the campaign
+     ============================================================ */
+
+  // 1. Google Apps Script "web app" URL (see google_apps_script.gs + README)
+  var SHEET_WEBHOOK_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+  // 2. MoEngage personalization token — MoEngage replaces this with the
+  //    actual unique user ID at campaign render time. Confirm the exact
+  //    token name in your MoEngage dashboard (Personalize > User attribute).
+  var USER_ID = "{{UserAttribute['USER_ATTRIBUTE_UNIQUE_ID']}}";
+
+  var TERM = "sem_8";
+
+  /* ============================================================
+     QUESTIONS — same content as the original Semester_End_Term_8
+     ============================================================ */
+  var QUESTIONS = [
+    { id: 1, question: "How would you rate your overall semester experience?",
+      options: ["Academics & Professors", "Extra-curriculars", "Infrastructure & Facilities", "Placements and Internships", "Problem Resolution"],
+      event_name: "sem_end_experience_captured", attribute: "semester_experience" },
+    { id: 2, question: "Rate your experience with Academic & Professors",
+      options: ["Course Content", "Timetable", "Practical Learning", "Faculty Behaviour"],
+      event_name: "sem_end_academic_experience_captured", attribute: "semester_end_academics" },
+    { id: 3, question: "Rate your experience on Infrastructure & Facilities",
+      options: ["Classroom Infrastructure", "Wi-Fi", "Lab Access", "Library Access", "Auditorium and Sports Ground Access"],
+      event_name: "sem_end_infra_experience_captured", attribute: "semester_end_infra" },
+    { id: 4, question: "Rate your experience on Extra-curriculars",
+      options: ["Events Organised in Campus", "Ace Academy", "Industry Visits", "Clubs"],
+      event_name: "sem_end_ec_experience_captured", attribute: "semester_end_ec" },
+    { id: 5, question: "Rate your experience on Placements and Internships",
+      options: ["Job Profiles", "Company Brands", "CTC offered", "Placement Support"],
+      event_name: "sem_end_placements_experience_captured", attribute: "semester_end_placements" },
+    { id: 6, question: "Rate your experience on Problem Resolution",
+      options: ["After-class availability", "Response Time", "Satisfactory Resolution", "Attentive and Considerate"],
+      event_name: "sem_end_problem_resolution_captured", attribute: "semester_end_problem_resolution" }
+  ];
+
+  var STAR_COLORS = { 1: "#e74c3c", 2: "#e67e22", 3: "#f5b942", 4: "#9acd32", 5: "#2ecc71" };
+
+  /* ============================================================
+     LOGGING — fires on EVERY Next/Submit click (per-step logging)
+     ============================================================ */
+
+  // MoEngage bridge is injected by the in-app campaign container.
+  // Every call is null-guarded so the form never crashes in preview/testing.
+  function mo() { return (typeof moengage !== "undefined" && moengage) ? moengage : null; }
+
+  function logToMoEngage(q, rating, review) {
+    var m = mo();
+    if (!m) return;
+    try {
+      m.trackClick && m.trackClick();
+      // FLAT attributes only — nested objects are not queryable in MoEngage.
+      m.trackEvent && m.trackEvent(q.event_name, {
+        rating: rating,
+        review: review.join(","),
+        question_id: q.id,
+        question: q.question,
+        term: TERM,
+        user_id: USER_ID
+      }, {}, {}, false, true);
+      m.setUserAttribute && m.setUserAttribute(q.attribute + "_rating", rating);
+      m.setUserAttribute && m.setUserAttribute(q.attribute + "_review", review.join(","));
+    } catch (e) { /* never block the UI on tracking */ }
+  }
+
+  function logToSheet(q, rating, review) {
+    if (!SHEET_WEBHOOK_URL || SHEET_WEBHOOK_URL.indexOf("PASTE_") === 0) return;
+    var payload = JSON.stringify({
+      user_id: USER_ID,
+      term: TERM,
+      question_id: q.id,
+      question: q.question,
+      attribute: q.attribute,
+      rating: rating,
+      review: review,
+      event_name: q.event_name,
+      client_ts: new Date().toISOString()
+    });
+    try {
+      // text/plain avoids a CORS preflight (Apps Script can't answer OPTIONS).
+      // keepalive lets the request survive the form/app closing right after.
+      fetch(SHEET_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        keepalive: true,
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: payload
+      });
+    } catch (e) {
+      // fallback for very old webviews
+      try { navigator.sendBeacon && navigator.sendBeacon(SHEET_WEBHOOK_URL, payload); } catch (e2) {}
+    }
+  }
+
+  function logStep(q, rating, review) {
+    logToMoEngage(q, rating, review);
+    logToSheet(q, rating, review);
+  }
+
+  /* ============================================================
+     STATE + RENDERING
+     ============================================================ */
+  var screenEl = document.getElementById("screen");
+  var state = {
+    step: "START",          // START | RATING | SUCCESS
+    index: 0,               // current question index
+    rating: 0,              // current question's rating  (single source of truth)
+    review: []              // current question's selected chips
+  };
+
+  function renderStart() {
+    screenEl.innerHTML =
+      '<div class="start-container">' +
+        '<h1>Hurray!</h1>' +
+        '<p>Your semester 8 is complete</p>' +
+        '<p>Tell us about your experience!</p>' +
+        '<button class="start-button" id="startBtn">Start</button>' +
+      '</div>';
+    document.getElementById("startBtn").onclick = function () {
+      var m = mo();
+      if (m) {
+        try {
+          m.trackClick && m.trackClick();
+          // BUG FIX: original passed an undefined identifier; must be a string.
+          m.trackEvent && m.trackEvent("sem_end_feedback_start", { term: TERM, user_id: USER_ID }, {}, {}, false, true);
+        } catch (e) {}
+      }
+      state.step = "RATING";
+      render();
+    };
+  }
+
+  function renderQuestion() {
+    var q = QUESTIONS[state.index];
+    var navHtml = '<nav class="navbar"><div class="btn-group">' +
+      QUESTIONS.map(function (_, i) {
+        return '<div class="btn-group__item ' + (i <= state.index ? "activeTab" : "") + '"></div>';
+      }).join("") + "</div></nav>";
+
+    var starsHtml = '<div class="start-rating-container">' +
+      [1, 2, 3, 4, 5].map(function (v) {
+        var filled = state.rating >= v;
+        var color = filled ? STAR_COLORS[state.rating] : "#d9d9d9";
+        return '<span class="star" data-value="' + v + '" style="color:' + color + '">' + (filled ? "★" : "☆") + "</span>";
+      }).join("") + "</div>";
+
+    var bodyHtml;
+    if (state.rating > 0) {
+      bodyHtml =
+        '<p class="choose-label">Choose one or more</p>' +
+        '<div class="chips">' +
+        q.options.map(function (opt) {
+          var sel = state.review.indexOf(opt) !== -1;
+          return '<button class="chip ' + (sel ? "selected" : "") + '" data-opt="' + opt.replace(/"/g, "&quot;") + '">' + opt + "</button>";
+        }).join("") +
+        "</div>" +
+        '<button class="submit-button" id="nextBtn">' + (state.index === QUESTIONS.length - 1 ? "Submit" : "Next") + "</button>";
+    } else {
+      bodyHtml = '<span class="not-rated">Not rated</span>';
+    }
+
+    screenEl.innerHTML = navHtml +
+      '<div class="rating-container"><p>' + q.question + "</p>" + starsHtml +
+      '<div class="mrg-t-20-b-50">' + bodyHtml + "</div></div>";
+
+    // Star click — BUG FIX: the rating is written straight into the state
+    // that gets logged. No second "shadow" object that can go stale.
+    Array.prototype.forEach.call(screenEl.querySelectorAll(".star"), function (el) {
+      el.onclick = function () {
+        state.rating = parseInt(el.getAttribute("data-value"), 10);
+        render();
+      };
+    });
+
+    // Chip toggle
+    Array.prototype.forEach.call(screenEl.querySelectorAll(".chip"), function (el) {
+      el.onclick = function () {
+        var opt = el.getAttribute("data-opt");
+        var i = state.review.indexOf(opt);
+        if (i === -1) state.review.push(opt); else state.review.splice(i, 1);
+        render();
+      };
+    });
+
+    // Next / Submit — logs rating + review TOGETHER, then advances
+    var nextBtn = document.getElementById("nextBtn");
+    if (nextBtn) {
+      nextBtn.onclick = function () {
+        logStep(q, state.rating, state.review.slice());
+        if (state.index === QUESTIONS.length - 1) {
+          var m = mo();
+          if (m) { try { m.trackEvent && m.trackEvent("semester_feedback_submitted", { term: TERM, user_id: USER_ID }, {}, {}, false, true); } catch (e) {} }
+          state.step = "SUCCESS";
+        } else {
+          state.index += 1;
+          state.rating = 0;
+          state.review = [];
+        }
+        render();
+      };
+    }
+  }
+
+  function renderSuccess() {
+    screenEl.innerHTML =
+      '<div class="success-container">' +
+        '<div class="success-icon">✅</div>' +
+        '<h3 class="form-submitted">Feedback Submitted</h3>' +
+        "<p>All the best for your next semester</p>" +
+      "</div>";
+    setTimeout(closeWidget, 2500);
+  }
+
+  function render() {
+    if (state.step === "START") renderStart();
+    else if (state.step === "RATING") renderQuestion();
+    else renderSuccess();
+  }
+
+  function closeWidget() {
+    var card = document.getElementById("card");
+    card.classList.add("close-anim");
+    setTimeout(function () {
+      document.getElementById("widget").style.display = "none";
+      var m = mo();
+      if (m) { try { m.dismissMessage && m.dismissMessage(); } catch (e) {} }
+    }, 700);
+  }
+
+  document.getElementById("closeBtn").onclick = function () {
+    var m = mo();
+    if (m) { try { m.trackDismiss && m.trackDismiss(); } catch (e) {} }
+    closeWidget();
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

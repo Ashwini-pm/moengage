@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover → env(safe-area-inset-*) works on notched iPhones;
+         maximum-scale=1 → no accidental pinch/double-tap zoom of the popup -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Semester Feedback Form</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- ============================================================
+         CAMPAIGN CONFIG — the ONLY part that changes per campaign.
+         This block lives in the HTML (not feedback.js) because
+         MoEngage personalization renders ONLY on the campaign HTML.
+         ============================================================ -->
+    <script>
+      window.MOE_CONFIG = {
+        /* Student's database user ID (= MoEngage uniqueId set by the app
+           at login). IMPORTANT: do NOT hand-type the token below — in the
+           MoEngage campaign editor, delete the placeholder and insert the
+           Unique ID token via the @ personalization picker. */
+        userId: "{{UserAttribute['USER_ATTRIBUTE_UNIQUE_ID']}}",
+
+        /* Google Apps Script web-app URL (ends in /exec) */
+        sheetWebhookUrl: "https://script.google.com/macros/s/AKfycbzFiPoBoIzKEr5F1kgM5bFtGRUr4AZZb9_icqiaDQJ7Ff6SgIzmhK1AqLN-6wLT6PPYfw/exec",
+
+        /* Term identifier — stamped on every event and Sheet row.
+           Change this per run (e.g. "sem_1", "sem_5", "sem_8"). */
+        term: "sem_8",
+
+        /* Start-screen copy — edit freely per campaign, code never changes */
+        startTitle: "Hurray!",
+        startLine1: "Your semester is complete",
+        startLine2: "Tell us about your experience!"
+      };
+    </script>
+
+    <!-- feedback.js is uploaded as a campaign asset alongside this HTML.
+         Keep the relative path; MoEngage rewrites it to its CDN URL. -->
+    <script defer src="feedback.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
