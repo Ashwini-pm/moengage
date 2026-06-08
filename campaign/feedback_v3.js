@@ -93,9 +93,12 @@
     ".heading-contaner{text-align:center;color:#0c0c0cb3;padding-bottom:10px}" +
     ".wraper-container{position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;overflow:hidden}" +
     ".wrapper-overlay{position:absolute;top:0;left:0;width:100%;height:100%;z-index:9;overflow:auto;background:rgba(0,0,0,.7)}" +
-    ".content-container{width:100%;position:absolute;bottom:0;z-index:99;transition:bottom .9s cubic-bezier(.17,.04,.03,.94);" +
-    "left:0;right:0;margin:0 auto;max-width:480px;" +                             // tablets: centered sheet, not full-bleed
-    "max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch}" +         // small phones (SE etc): card scrolls instead of clipping
+    ".content-container{width:100%;position:absolute;top:0;bottom:0;z-index:99;transition:bottom .9s cubic-bezier(.17,.04,.03,.94);" +
+    "left:0;right:0;margin:0 auto;max-width:480px;background:#22366a;" +          // FULL SCREEN, navy bg so no grey gap
+    "display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch}" +
+    ".content-container > div{flex:1;display:flex;flex-direction:column}" +       // screen wrapper fills height
+    ".feedback-form-container{flex:1;min-height:100vh}" +                         // questions fill screen (white)
+    ".start-feedback-container{flex:1;display:flex;flex-direction:column;justify-content:center}" + // start centered, fills navy
 
     ".close-anim{bottom:-80vh}" +
     ".start-feedback-container{background-color:#22366a}" +
@@ -263,16 +266,6 @@
 
   function renderStart() {
     screen.innerHTML = "";
-
-    // close (X) above the card — same as original
-    var closeRow = el("div", "close-button");
-    var closeImg = el("img");
-    closeImg.src = CLOSE_ICON;
-    closeImg.alt = "close";
-    closeImg.style.cursor = "pointer";
-    closeImg.onclick = function () { logDismissed(); closeWidget(); };
-    closeRow.appendChild(closeImg);
-    screen.appendChild(closeRow);
 
     // original structure: navy container > hero GIF with gradient glow > text > Start
     var box = el("div", "start-feedback-container");
