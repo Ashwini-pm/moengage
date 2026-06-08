@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diagnostic v2</title>
+<!-- ====================================================================
+     DIAGNOSTIC v2 - paste AS-IS into a MoEngage custom HTML in-app.
+     v1's <img> pixel probe PROVED delivery to the phone, but the probe
+     URL returns text (not an image), so the SDK's image pre-download
+     check failed and aborted the display. v2 has NO images at all -
+     nothing for the SDK to pre-validate, nothing to abort on.
+     Probes: visible magenta UI (pure CSS), fetch POST, XHR POST,
+     moengage bridge event.
+     ==================================================================== -->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .diag-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #d6006e; z-index: 1050;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, Arial, sans-serif;
+  }
+  .diag-card {
+    background: #fff; border-radius: 12px; padding: 28px 22px;
+    width: 86%; max-width: 360px; text-align: center;
+  }
+  .diag-card h1 { font-size: 26px; color: #d6006e; margin-bottom: 10px; }
+  .diag-card p { font-size: 15px; color: #333; margin-bottom: 18px; }
+  .diag-btn {
+    display: block; width: 100%; padding: 14px; border: none;
+    border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .diag-btn-yes { background: #1f8b24; color: #fff; margin-bottom: 10px; }
+  .diag-btn-close { background: #eee; color: #333; }
+</style>
+</head>
+<body>
+
+  <div class="diag-backdrop">
+    <div class="diag-card">
+      <h1>DIAGNOSTIC V2 OK</h1>
+      <p>The campaign reached this phone<br />and DISPLAYED. Tap the green button.</p>
+      <button class="diag-btn diag-btn-yes"
+        onclick="try{moengage.trackClick();moengage.trackEvent('diag2_button_tapped',{uid:'2935954'},{},{},false,true);}catch(e){}; try{fetch('https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'diag2_button',user_id:'2935954',term:'diag'})});}catch(e){}; this.innerText='Logged! You can close.';">
+        I CAN SEE THIS
+      </button>
+      <button class="diag-btn diag-btn-close"
+        onclick="try{moengage.trackDismiss();moengage.dismissMessage();}catch(e){document.body.style.display='none';}">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <script>
+    /* fetch probe */
+    try {
+      fetch("https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec", {
+        method: "POST", mode: "no-cors", keepalive: true,
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          type: "diag2_fetch", user_id: "2935954", term: "diag",
+          device: (navigator.userAgent || "").slice(0, 200),
+          client_ts: new Date().toISOString()
+        })
+      });
+    } catch (e) {}
+
+    /* XHR probe */
+    try {
+      var x = new XMLHttpRequest();
+      x.open("POST", "https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec", true);
+      x.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+      x.send(JSON.stringify({ type: "diag2_xhr", user_id: "2935954", term: "diag" }));
+    } catch (e) {}
+
+    /* MoEngage bridge probe */
+    try {
+      if (typeof moengage !== "undefined" && moengage && moengage.trackEvent) {
+        moengage.trackEvent("diag2_inapp_opened", { uid: "2935954", probe: "bridge" }, {}, {}, false, true);
+      }
+    } catch (e) {}
+  </script>
+</body>
+</html>

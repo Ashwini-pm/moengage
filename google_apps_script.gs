@@ -68,7 +68,16 @@ function doPost(e) {
     var uid = String(data.user_id || "");
     if (!uid) return jsonOut({ ok: false, error: "missing user_id" });
 
-    if (type === "shown") {
+    // Beacons tab: raw forensic log of every delivery/lifecycle ping
+    if (type === "html_loaded" || type === "shown" || type === "started") {
+      logBeacon(type, uid, data);
+    }
+
+    if (type === "html_loaded") {
+      // earliest possible signal: HTML opened on a device
+      markReached(uid, data.term);
+      upgradeFlag(uid, "0");
+    } else if (type === "shown") {
       markReached(uid, data.term);
       upgradeFlag(uid, "0");
     } else if (type === "started") {
@@ -87,8 +96,28 @@ function doPost(e) {
   }
 }
 
-/** Open the /exec URL in a browser to confirm the deployment is live. */
-function doGet() {
+/** GET handler. Two jobs:
+ *  1. No params: health check ("OK ...") for opening the URL in a browser.
+ *  2. With ?type=... params: logs a beacon row. This lets a plain
+ *     <img src="...exec?type=pixel&uid=..."> act as a delivery probe that
+ *     works even when JavaScript is broken or fetch is blocked. */
+function doGet(e) {
+  if (e && e.parameter && e.parameter.type) {
+    var lock = LockService.getScriptLock();
+    lock.tryLock(10000);
+    try {
+      logBeacon(String(e.parameter.type), String(e.parameter.uid || "unknown"), {
+        term: e.parameter.term || "",
+        device: e.parameter.via || "img-pixel",
+        client_ts: ""
+      });
+      return ContentService.createTextOutput("ok");
+    } catch (err) {
+      return ContentService.createTextOutput("err");
+    } finally {
+      lock.releaseLock();
+    }
+  }
   return ContentService.createTextOutput("OK - feedback webhook is live (wide format)");
 }
 
@@ -96,6 +125,24 @@ function jsonOut(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ------------------------------------------------------------------ */
+/* "Beacons" tab — raw delivery/lifecycle trail (forensics)            */
+/* ------------------------------------------------------------------ */
+
+function logBeacon(type, uid, data) {
+  var sheet = getSheet("Beacons", [
+    "server_ts", "client_ts", "type", "user_id", "term", "device"
+  ]);
+  sheet.appendRow([
+    new Date(),
+    data.client_ts || "",
+    type,
+    uid,
+    data.term || "",
+    data.device || ""
+  ]);
 }
 
 /* ------------------------------------------------------------------ */

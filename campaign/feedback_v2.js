@@ -32,8 +32,8 @@
   var START_LINE1 = CFG.startLine1 || "Your semester is complete";
   var START_LINE2 = CFG.startLine2 || "Tell us about your experience!";
 
-  // If MoEngage didn't render the token (browser preview / misconfigured
-  // campaign), don't pollute the Sheet with a literal "{{...}}" string.
+  // Reads the user id from config. If MoEngage didn't fill it, avoid logging
+  // a literal "{{...}}" string.
   var USER_ID = CFG.userId || "";
   if (!USER_ID || USER_ID.indexOf("{{") !== -1) USER_ID = "TEST_PREVIEW";
 

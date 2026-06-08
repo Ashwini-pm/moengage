@@ -2,8 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- viewport-fit=cover → env(safe-area-inset-*) works on notched iPhones;
-         maximum-scale=1 → no accidental pinch/double-tap zoom of the popup -->
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"
@@ -17,36 +15,45 @@
       rel="stylesheet"
     />
 
-    <!-- ============================================================
-         CAMPAIGN CONFIG — the ONLY part that changes per campaign.
-         This block lives in the HTML (not feedback.js) because
-         MoEngage personalization renders ONLY on the campaign HTML.
-         ============================================================ -->
     <script>
       window.MOE_CONFIG = {
-        /* Student's database user ID (= MoEngage uniqueId set by the app
-           at login). IMPORTANT: do NOT hand-type the token below — in the
-           MoEngage campaign editor, delete the placeholder and insert the
-           Unique ID token via the @ personalization picker. */
-        userId: "{{UserAttribute['USER_ATTRIBUTE_UNIQUE_ID']}}",
+        /* Student user id. For a quick test use a fixed value like "2935954".
+           For all students, insert the user-id attribute here via the @ picker. */
+        userId: "{{UserAttribute['user_id']|default('UNKNOWN')}}",
 
         /* Google Apps Script web-app URL (ends in /exec) */
-        sheetWebhookUrl: "https://script.google.com/macros/s/AKfycbzFiPoBoIzKEr5F1kgM5bFtGRUr4AZZb9_icqiaDQJ7Ff6SgIzmhK1AqLN-6wLT6PPYfw/exec",
+        sheetWebhookUrl: "https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec",
 
-        /* Term identifier — stamped on every event and Sheet row.
-           Change this per run (e.g. "sem_1", "sem_5", "sem_8"). */
+        /* Term identifier — stamped on every event and Sheet row */
         term: "sem_8",
 
-        /* Start-screen copy — edit freely per campaign, code never changes */
+        /* Start-screen copy */
         startTitle: "Hurray!",
         startLine1: "Your semester is complete",
         startLine2: "Tell us about your experience!"
       };
+
+      /* Delivery beacon — fires the instant this HTML opens on a device */
+      try {
+        fetch(window.MOE_CONFIG.sheetWebhookUrl, {
+          method: "POST",
+          mode: "no-cors",
+          keepalive: true,
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            type: "html_loaded",
+            user_id: String(window.MOE_CONFIG.userId || "unknown"),
+            term: window.MOE_CONFIG.term,
+            device: (navigator.userAgent || "").slice(0, 200),
+            client_ts: new Date().toISOString()
+          })
+        });
+      } catch (e) {}
     </script>
 
-    <!-- feedback.js is uploaded as a campaign asset alongside this HTML.
-         Keep the relative path; MoEngage rewrites it to its CDN URL. -->
-    <script defer src="feedback.js"></script>
+    <!-- feedback_v3.js is uploaded as a campaign asset; replace src with the
+         CDN URL MoEngage gives you after upload. -->
+    <script defer src="https://campaign-assets-03.moengage.com/inbound/inapp/html_inapp/campaigns/Sunstone/1780915265951193_fsuf8g/1780915265952127_makmd8/assets/1780915940880618_ohb/feedback_v3.js"></script>
   </head>
   <body>
     <div id="root"></div>

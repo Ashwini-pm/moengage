@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Diagnostic</title>
+<!-- ====================================================================
+     DIAGNOSTIC TEMPLATE - paste into a MoEngage custom HTML in-app
+     campaign AS-IS. No assets to upload, no external scripts, no fonts.
+     Mirrors the structure of MoEngage's official sample templates
+     (everything inline, visible markup hardcoded in body).
+
+     Four independent probes, weakest dependency first:
+       P1  <img> pixel GET   - fires even if ALL JavaScript is broken
+       P2  inline fetch POST - tests whether fetch works in the WebView
+       P3  moengage.trackEvent - SDK bridge channel (bypasses WebView net)
+       P4  the visible UI itself + buttons
+
+     How to read the results:
+       Phone shows magenta screen            -> campaign IS delivered (H2!)
+       Beacons tab gets "pixel" row          -> WebView can reach the Sheet
+       Beacons tab gets "diag_fetch" row     -> fetch works too
+       MoEngage user 2935954 event activity
+         shows "diag_inapp_opened"           -> bridge works
+       Nothing anywhere, no magenta          -> campaign truly not delivered
+                                                (app-side, escalate)
+     ==================================================================== -->
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .diag-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #d6006e; z-index: 1050;
+    display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, Arial, sans-serif;
+  }
+  .diag-card {
+    background: #fff; border-radius: 12px; padding: 28px 22px;
+    width: 86%; max-width: 360px; text-align: center;
+  }
+  .diag-card h1 { font-size: 26px; color: #d6006e; margin-bottom: 10px; }
+  .diag-card p { font-size: 15px; color: #333; margin-bottom: 18px; }
+  .diag-btn {
+    display: block; width: 100%; padding: 14px; border: none;
+    border-radius: 8px; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .diag-btn-yes { background: #1f8b24; color: #fff; margin-bottom: 10px; }
+  .diag-btn-close { background: #eee; color: #333; }
+  .diag-pixel { position: absolute; width: 1px; height: 1px; opacity: 0; }
+</style>
+</head>
+<body>
+
+  <!-- P1: pixel probe. Plain HTML image, no JS needed. The GET hits the
+       Apps Script doGet with query params and is logged to Beacons. -->
+  <img class="diag-pixel" alt=""
+    src="https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec?type=pixel&uid=2935954&term=diag&via=img-tag" />
+
+  <!-- P4: visible UI, hardcoded in body like the official samples.
+       Bridge calls are inline onclick, exactly like MoEngage's own
+       sample templates (trackClick / trackEvent / dismissMessage). -->
+  <div class="diag-backdrop">
+    <div class="diag-card">
+      <h1>DIAGNOSTIC OK</h1>
+      <p>The campaign reached this phone.<br />Tap the green button once.</p>
+      <button class="diag-btn diag-btn-yes"
+        onclick="try{moengage.trackClick();moengage.trackEvent('diag_button_tapped',{uid:'2935954'},{},{},false,true);}catch(e){}; try{fetch('https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec',{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({type:'diag_button',user_id:'2935954',term:'diag'})});}catch(e){}; this.innerText='Logged! You can close.';">
+        I CAN SEE THIS
+      </button>
+      <button class="diag-btn diag-btn-close"
+        onclick="try{moengage.trackDismiss();moengage.dismissMessage();}catch(e){document.body.style.display='none';}">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- P2 + P3: inline script probes, run on load -->
+  <script>
+    /* P2: fetch probe */
+    try {
+      fetch("https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec", {
+        method: "POST", mode: "no-cors", keepalive: true,
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          type: "diag_fetch", user_id: "2935954", term: "diag",
+          device: (navigator.userAgent || "").slice(0, 200),
+          client_ts: new Date().toISOString()
+        })
+      });
+    } catch (e) {}
+
+    /* P2b: XHR probe, in case fetch is missing but XHR works */
+    try {
+      var x = new XMLHttpRequest();
+      x.open("POST", "https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec", true);
+      x.setRequestHeader("Content-Type", "text/plain;charset=utf-8");
+      x.send(JSON.stringify({ type: "diag_xhr", user_id: "2935954", term: "diag" }));
+    } catch (e) {}
+
+    /* P3: SDK bridge probe - travels through MoEngage's own native
+       channel, immune to any WebView network restrictions. Shows up in
+       the test user's Event Activity in the MoEngage dashboard. */
+    try {
+      if (typeof moengage !== "undefined" && moengage && moengage.trackEvent) {
+        moengage.trackEvent("diag_inapp_opened", { uid: "2935954", probe: "bridge" }, {}, {}, false, true);
+      }
+    } catch (e) {}
+  </script>
+</body>
+</html>

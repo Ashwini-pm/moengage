@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover → env(safe-area-inset-*) works on notched iPhones;
+         maximum-scale=1 → no accidental pinch/double-tap zoom of the popup -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover"
+    />
+    <title>Semester Feedback Form</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- ============================================================
+         CAMPAIGN CONFIG — the ONLY part that changes per campaign.
+         This block lives in the HTML (not feedback.js) because
+         MoEngage personalization renders ONLY on the campaign HTML.
+         ============================================================ -->
+    <script>
+      window.MOE_CONFIG = {
+        /* @ VERSION:
+           After pasting, put your cursor between the two quotes below,
+           type @ , choose User Attributes -> Unique ID (or ID).
+           Then type  |default('UNKNOWN')  before the closing }} */
+        userId: "",
+
+        /* Google Apps Script web-app URL (ends in /exec) */
+        sheetWebhookUrl: "https://script.google.com/macros/s/AKfycbwFBHw1YCrcVcHRTjJm1a-GMc_z-Dw0pU0EdVK02pg8Czb8Pw4nq_vx9P2J7Gwm0BctIg/exec",
+
+        /* Term identifier — stamped on every event and Sheet row.
+           Change this per run (e.g. "sem_1", "sem_5", "sem_8"). */
+        term: "sem_8",
+
+        /* Start-screen copy — edit freely per campaign, code never changes */
+        startTitle: "Hurray!",
+        startLine1: "Your semester is complete",
+        startLine2: "Tell us about your experience!"
+      };
+
+      /* DELIVERY BEACON — fires the instant this HTML opens on a device,
+         BEFORE feedback.js or any external resource loads. If this ping
+         reaches the Sheet, the campaign was delivered to a phone, full stop.
+         If it never arrives, MoEngage never delivered (check Error breakdown
+         for "Personalization Failed" etc.). */
+      try {
+        fetch(window.MOE_CONFIG.sheetWebhookUrl, {
+          method: "POST",
+          mode: "no-cors",
+          keepalive: true,
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            type: "html_loaded",
+            user_id: String(window.MOE_CONFIG.userId || "unknown"),
+            term: window.MOE_CONFIG.term,
+            device: (navigator.userAgent || "").slice(0, 200),
+            client_ts: new Date().toISOString()
+          })
+        });
+      } catch (e) {}
+    </script>
+
+    <!-- feedback_v1.js is uploaded as a campaign ASSET in the MoEngage editor.
+         IMPORTANT: MoEngage does NOT rewrite relative paths in hand-authored
+         script tags — after uploading the asset, replace the src below with
+         the full campaign-assets CDN URL MoEngage gives you. -->
+    <script defer src="feedback_v1.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
